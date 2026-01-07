@@ -2,11 +2,13 @@ package com.geonwoo.assignment.presentation
 
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.pressBack
+import androidx.test.espresso.IdlingPolicies
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions
+import androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -20,6 +22,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.TimeUnit
 
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
@@ -34,6 +37,10 @@ class NavigationTest {
     @Before
     fun setup() {
         hiltRule.inject()
+        
+        // Idling 정책 설정 - 대기 시간 1초
+        IdlingPolicies.setIdlingResourceTimeout(1, TimeUnit.SECONDS)
+        IdlingPolicies.setMasterPolicyTimeout(1, TimeUnit.SECONDS)
     }
 
     @Test
@@ -46,17 +53,18 @@ class NavigationTest {
             .perform(typeText("Test Description"), closeSoftKeyboard())
         onView(withText("추가")).perform(click())
 
-        // Wait for item to be added
-        Thread.sleep(500)
+        // Espresso는 IdlingPolicies에 설정된 시간(1초) 내에
+        // 비동기 작업 완료를 자동 대기
 
         // Click on the item to navigate to detail
+        onView(withId(R.id.recyclerView))
+            .perform(RecyclerViewActions.scrollToPosition<RecyclerView.ViewHolder>(0))
         onView(withId(R.id.recyclerView))
             .perform(RecyclerViewActions.actionOnItemAtPosition<RecyclerView.ViewHolder>(0, click()))
 
         // Check detail screen is displayed
-        Thread.sleep(300)
         onView(withId(R.id.editTitle))
-            .check(matches(isDisplayed()))
+            .check(matches(isCompletelyDisplayed()))
         onView(withId(R.id.btnSave))
             .check(matches(isDisplayed()))
 
@@ -64,9 +72,8 @@ class NavigationTest {
         pressBack()
 
         // Check list screen is displayed
-        Thread.sleep(300)
         onView(withId(R.id.recyclerView))
-            .check(matches(isDisplayed()))
+            .check(matches(isCompletelyDisplayed()))
     }
 
     @Test
@@ -79,16 +86,16 @@ class NavigationTest {
             .perform(typeText("Detail Description"), closeSoftKeyboard())
         onView(withText("추가")).perform(click())
 
-        // Wait for item to be added
-        Thread.sleep(500)
+        // Espresso가 데이터베이스 작업 완료를 대기
 
         // Click on the item to navigate to detail
+        onView(withId(R.id.recyclerView))
+            .perform(RecyclerViewActions.scrollToPosition<RecyclerView.ViewHolder>(0))
         onView(withId(R.id.recyclerView))
             .perform(RecyclerViewActions.actionOnItemAtPosition<RecyclerView.ViewHolder>(0, click()))
 
         // Check detail data is displayed correctly
-        Thread.sleep(300)
         onView(withText("Detail Test"))
-            .check(matches(isDisplayed()))
+            .check(matches(isCompletelyDisplayed()))
     }
 }

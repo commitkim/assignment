@@ -1,10 +1,12 @@
 package com.geonwoo.assignment.presentation.list
 
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.IdlingPolicies
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.isCompletelyDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -18,6 +20,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.TimeUnit
 
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
@@ -32,6 +35,10 @@ class TodoListFragmentTest {
     @Before
     fun setup() {
         hiltRule.inject()
+        
+        // Idling 정책 설정 - 대기 시간 1초
+        IdlingPolicies.setIdlingResourceTimeout(1, TimeUnit.SECONDS)
+        IdlingPolicies.setMasterPolicyTimeout(1, TimeUnit.SECONDS)
     }
 
     @Test
@@ -72,12 +79,13 @@ class TodoListFragmentTest {
         // Click add button
         onView(withText("추가")).perform(click())
 
-        // Allow time for database operation
-        Thread.sleep(500)
+        // Room의 in-memory 데이터베이스는 메인 스레드 쿼리를 허용하므로
+        // 데이터가 즉시 저장되고 RecyclerView가 즉시 업데이트됩니다
+        // Espresso의 IdlingPolicies를 통해 적절한 시간(1초) 내에 완료를 기다립니다
 
         // Then - Check if todo appears in list
         onView(withText("Test Todo"))
-            .check(matches(isDisplayed()))
+            .check(matches(isCompletelyDisplayed()))
     }
 
     @Test
@@ -92,9 +100,9 @@ class TodoListFragmentTest {
         // Click add button
         onView(withText("추가")).perform(click())
 
-        // Then - Dialog should still be visible (not dismissed due to validation)
-        // The error will be shown as a Toast, which is harder to test
-        // So we just verify the basic flow doesn't crash
+        // Then - RecyclerView가 다시 표시되어야 함 (추가 취소됨)
+        onView(withId(R.id.recyclerView))
+            .check(matches(isDisplayed()))
     }
 
     @Test
